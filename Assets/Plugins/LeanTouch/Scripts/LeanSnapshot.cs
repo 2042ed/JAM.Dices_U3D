@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-namespace Lean
+namespace Lean.Touch
 {
 	// This class stores a snapshot of where a finger was at a previous point in time
 	public class LeanSnapshot
@@ -15,9 +15,7 @@ namespace Lean
 		// This will return the world position of this snapshot based on the distance from the camera
 		public Vector3 GetWorldPosition(float distance, Camera camera = null)
 		{
-			if (camera == null) camera = Camera.main;
-			
-			if (camera != null)
+			if (LeanTouch.GetCamera(ref camera) == true)
 			{
 				var point = new Vector3(ScreenPosition.x, ScreenPosition.y, distance);
 				

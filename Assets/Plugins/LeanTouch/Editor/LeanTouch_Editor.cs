@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
-namespace Lean
+namespace Lean.Touch
 {
 	[CustomEditor(typeof(LeanTouch))]
 	public class LeanTouch_Editor : Editor
@@ -27,7 +27,7 @@ namespace Lean
 		}
 		
 		[MenuItem("GameObject/Lean/Touch", false, 1)]
-		public static void CreateLocalization()
+		public static void CreateTouch()
 		{
 			var gameObject = new GameObject(typeof(LeanTouch).Name);
 			
@@ -41,15 +41,18 @@ namespace Lean
 		// Draw the whole inspector
 		public override void OnInspectorGUI()
 		{
+			if (LeanTouch.Instances.Count > 1)
+			{
+				EditorGUILayout.Separator();
+
+				EditorGUILayout.HelpBox("There is more than one active and enabled LeanTouch...", MessageType.Warning);
+			}
+
 			var touch = (LeanTouch)target;
 			
 			Separator();
 			
 			DrawSettings(touch);
-			
-			Separator();
-			
-			DrawGestures();
 			
 			Separator();
 			
@@ -65,8 +68,8 @@ namespace Lean
 			DrawTitle("Settings");
 			DrawDefault("TapThreshold");
 			DrawDefault("SwipeThreshold");
-			DrawDefault("HeldThreshold");
 			DrawDefault("ReferenceDpi");
+			DrawDefault("GuiLayers");
 			
 			Separator();
 			
@@ -75,10 +78,8 @@ namespace Lean
 			if (touch.RecordFingers == true)
 			{
 				BeginIndent();
-				{
 					DrawDefault("RecordThreshold");
 					DrawDefault("RecordLimit");
-				}
 				EndIndent();
 			}
 			
@@ -89,11 +90,9 @@ namespace Lean
 			if (touch.SimulateMultiFingers == true)
 			{
 				BeginIndent();
-				{
 					DrawDefault("PinchTwistKey");
 					DrawDefault("MultiDragKey");
 					DrawDefault("FingerTexture");
-				}
 				EndIndent();
 			}
 		}
@@ -121,28 +120,7 @@ namespace Lean
 				}
 			}
 		}
-		
-		private void DrawGestures()
-		{
-			DrawTitle("Gestures");
-			
-			EditorGUI.BeginDisabledGroup(true);
-			{
-				DrawVector2("Drag Delta", LeanTouch.DragDelta);
-				
-				DrawVector2("Solo Drag Delta", LeanTouch.SoloDragDelta);
-				
-				DrawVector2("Multi Drag Delta", LeanTouch.MultiDragDelta);
-				
-				EditorGUILayout.FloatField("Twist Degrees", LeanTouch.TwistDegrees);
-				
-				EditorGUILayout.FloatField("Twist Radians", LeanTouch.TwistRadians);
-				
-				EditorGUILayout.FloatField("Pinch Scale", LeanTouch.PinchScale);
-			}
-			EditorGUI.EndDisabledGroup();
-		}
-		
+
 		private static void DrawVector2(string name, Vector2 xy)
 		{
 			var left   = Reserve();

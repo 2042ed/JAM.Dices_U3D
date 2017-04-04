@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-namespace Lean
+namespace Lean.Touch
 {
 	// This class stores information about a single touch (or simulated touch)
 	public class LeanFinger
@@ -9,35 +9,29 @@ namespace Lean
 		// This is the hardware ID of the finger (or 0 & 1 for simulated fingers)
 		public int Index;
 		
-		// This tells you how long this finger has been active, or inactive
+		// This tells you how long this finger has been active (or inactive) in seconds
 		public float Age;
 		
 		// This tells you if the finger is currently set (mouse click or touched on screen)
 		public bool Set;
-		
-		// This tells you if the finger is currently being held for a long time
-		public bool HeldSet;
+
+		// This tells you the 'Set' value of the last frame
+		public bool LastSet;
 		
 		// This tells if you if the finger has just been tapped
 		public bool Tap;
 		
 		// This tells you how many times this finger has been tapped
 		public int TapCount;
+
+		// This tells you if the finger was just swiped
+		public bool Swipe;
 		
 		// This tells you the screen position of the touch on the frame it was first set
 		public Vector2 StartScreenPosition;
 		
 		// This tells you the last screen position of the finger
 		public Vector2 LastScreenPosition;
-		
-		// This tells you the total of all the ScreenPositionDelta.magnitude values
-		public float TotalDeltaMagnitude;
-		
-		// This tells you the 'Set' value of the last frame
-		public bool LastSet;
-		
-		// This tells you the 'Held' value of the last frame
-		public bool LastHeldSet;
 		
 		// This tells you the current screen position of the finger
 		public Vector2 ScreenPosition;
@@ -80,24 +74,6 @@ namespace Lean
 			}
 		}
 		
-		// This tells you if the finger has just begun touching the screen for a long time
-		public bool HeldDown
-		{
-			get
-			{
-				return HeldSet == true && LastHeldSet == false;
-			}
-		}
-		
-		// This tells you if the finger has just stopped touching the screen for a long time
-		public bool HeldUp
-		{
-			get
-			{
-				return HeldSet == false && LastHeldSet == true;
-			}
-		}
-		
 		// This tells you if the finger has just touched the screen
 		public bool Down
 		{
@@ -117,7 +93,7 @@ namespace Lean
 		}
 		
 		// This will return how far in pixels the finger has moved since the last recorded snapshot
-		public Vector2 LastSnapshotDelta
+		public Vector2 LastSnapshotScreenDelta
 		{
 			get
 			{
@@ -136,81 +112,53 @@ namespace Lean
 				return Vector2.zero;
 			}
 		}
+
+		public Vector2 LastSnapshotScaledDelta
+		{
+			get
+			{
+				return LastSnapshotScreenDelta * LeanTouch.ScalingFactor;
+			}
+		}
 		
 		// This will return how far in pixels the finger has moved since the last frame
-		public Vector2 DeltaScreenPosition
+		public Vector2 ScreenDelta
 		{
 			get
 			{
 				return ScreenPosition - LastScreenPosition;
 			}
 		}
-		
-		// This will return how far in pixels the finger has moved since the last frame, relative to the device DPI
-		public Vector2 ScaledDeltaScreenPosition
+
+		public Vector2 ScaledDelta
 		{
 			get
 			{
-				return DeltaScreenPosition * LeanTouch.ScalingFactor;
+				return ScreenDelta * LeanTouch.ScalingFactor;
 			}
 		}
 		
-		// This will return how far in pixels the finger has moved relative to its start position
-		public Vector2 TotalDeltaScreenPosition
+		// This tells you how far this finger has moved since it began touching the screen
+		public Vector2 SwipeScreenDelta
 		{
 			get
 			{
 				return ScreenPosition - StartScreenPosition;
 			}
 		}
-		
-		// This will return how far in pixels the finger has moved relative to its start position, relative to the device DPI
-		public Vector2 ScaledTotalDeltaScreenPosition
+
+		public Vector2 SwipeScaledDelta
 		{
 			get
 			{
-				return TotalDeltaScreenPosition * LeanTouch.ScalingFactor;
-			}
-		}
-		
-		// This tells you how far this finger has moved recently
-		public Vector2 SwipeDelta
-		{
-			get
-			{
-				if (LeanTouch.Instance != null)
-				{
-					return GetSnapshotDelta(LeanTouch.Instance.TapThreshold);
-				}
-				
-				return Vector2.zero;
-			}
-		}
-		
-		// This tells you how far this finger has moved recently, relative to the device DPI
-		public Vector2 ScaledSwipeDelta
-		{
-			get
-			{
-				return SwipeDelta * LeanTouch.ScalingFactor;
-			}
-		}
-		
-		// This tells you the total of all the DeltaScreenPosition.magnitude values, relative to the device DPI
-		public float ScaledTotalDeltaMagnitude
-		{
-			get
-			{
-				return TotalDeltaMagnitude * LeanTouch.ScalingFactor;
+				return SwipeScreenDelta * LeanTouch.ScalingFactor;
 			}
 		}
 		
 		// This will return the ray of the finger's current position
 		public Ray GetRay(Camera camera = null)
 		{
-			if (camera == null) camera = Camera.main;
-			
-			if (camera != null)
+			if (LeanTouch.GetCamera(ref camera) == true)
 			{
 				return camera.ScreenPointToRay(ScreenPosition);
 			}
@@ -221,9 +169,7 @@ namespace Lean
 		// This will return the ray of the finger's start position
 		public Ray GetStartRay(Camera camera = null)
 		{
-			if (camera == null) camera = Camera.main;
-			
-			if (camera != null)
+			if (LeanTouch.GetCamera(ref camera) == true)
 			{
 				return camera.ScreenPointToRay(StartScreenPosition);
 			}
@@ -232,15 +178,14 @@ namespace Lean
 		}
 		
 		// This will tell you how far the finger has moved in the past 'deltaTime' seconds
-		public Vector2 GetSnapshotDelta(float deltaTime)
+		public Vector2 GetSnapshotScreenDelta(float deltaTime)
 		{
 			return ScreenPosition - GetSnapshotScreenPosition(Age - deltaTime);
 		}
-		
-		// This will tell you how far the finger has moved in the past 'deltaTime' seconds, relative to the device DPI
-		public Vector2 GetScaledSnapshotDelta(float deltaTime)
+
+		public Vector2 GetSnapshotScaledDelta(float deltaTime)
 		{
-			return GetSnapshotDelta(deltaTime) * LeanTouch.ScalingFactor;
+			return GetSnapshotScreenDelta(deltaTime) * LeanTouch.ScalingFactor;
 		}
 		
 		// This will return the recorded position of the current finger when it was at 'targetAge'
@@ -287,6 +232,19 @@ namespace Lean
 			}
 		}
 		
+		public Vector3 GetSnapshotWorldPosition(float targetAge, float distance, Camera camera = null)
+		{
+			if (LeanTouch.GetCamera(ref camera) == true)
+			{
+				var screenPosition = GetSnapshotScreenPosition(targetAge);
+				var point          = new Vector3(screenPosition.x, screenPosition.y, distance);
+				
+				return camera.ScreenToWorldPoint(point);
+			}
+			
+			return default(Vector3);
+		}
+
 		// This will return the angle between the finger and the reference point, relative to the screen
 		public float GetRadians(Vector2 referencePoint)
 		{
@@ -315,7 +273,7 @@ namespace Lean
 			return GetDeltaRadians(referencePoint, referencePoint);
 		}
 		
-		public float GetDeltaRadians(Vector2 lastReferencePoint, Vector2 referencePoint)
+		public float GetDeltaRadians(Vector2 referencePoint, Vector2 lastReferencePoint)
 		{
 			var a = GetLastRadians(lastReferencePoint);
 			var b = GetRadians(referencePoint);
@@ -334,31 +292,39 @@ namespace Lean
 			return GetDeltaRadians(referencePoint, referencePoint) * Mathf.Rad2Deg;
 		}
 		
-		public float GetDeltaDegrees(Vector2 lastReferencePoint, Vector2 referencePoint)
+		public float GetDeltaDegrees(Vector2 referencePoint, Vector2 lastReferencePoint)
 		{
-			return GetDeltaRadians(lastReferencePoint, referencePoint) * Mathf.Rad2Deg;
-		}
-		
-		// This will return the distance between the last finger and the reference point
-		public float GetLastDistance(Vector2 referencePoint)
-		{
-			return Vector2.Distance(LastScreenPosition, referencePoint);
+			return GetDeltaRadians(referencePoint, lastReferencePoint) * Mathf.Rad2Deg;
 		}
 		
 		// This will return the distance between the finger and the reference point
-		public float GetDistance(Vector2 referencePoint)
+		public float GetScreenDistance(Vector2 point)
 		{
-			return Vector2.Distance(ScreenPosition, referencePoint);
+			return Vector2.Distance(ScreenPosition, point);
+		}
+
+		public float GetScaledDistance(Vector2 point)
+		{
+			return GetScreenDistance(point) * LeanTouch.ScalingFactor;
+		}
+
+		// This will return the distance between the last finger and the reference point
+		public float GetLastScreenDistance(Vector2 point)
+		{
+			return Vector2.Distance(LastScreenPosition, point);
 		}
 		
-		// This will return the world position of this finger based on the distance from the camera
-		public Vector3 GetWorldPosition(float distance, Camera camera = null)
+		public float GetLastScaledDistance(Vector2 point)
 		{
-			if (camera == null) camera = Camera.main;
-			
-			if (camera != null)
+			return GetLastScreenDistance(point) * LeanTouch.ScalingFactor;
+		}
+
+		// This will return the start world position of this finger based on the distance from the camera
+		public Vector3 GetStartWorldPosition(float distance, Camera camera = null)
+		{
+			if (LeanTouch.GetCamera(ref camera) == true)
 			{
-				var point = new Vector3(ScreenPosition.x, ScreenPosition.y, distance);
+				var point = new Vector3(StartScreenPosition.x, StartScreenPosition.y, distance);
 				
 				return camera.ScreenToWorldPoint(point);
 			}
@@ -369,9 +335,7 @@ namespace Lean
 		// This will return the last world position of this finger based on the distance from the camera
 		public Vector3 GetLastWorldPosition(float distance, Camera camera = null)
 		{
-			if (camera == null) camera = Camera.main;
-			
-			if (camera != null)
+			if (LeanTouch.GetCamera(ref camera) == true)
 			{
 				var point = new Vector3(LastScreenPosition.x, LastScreenPosition.y, distance);
 				
@@ -381,34 +345,33 @@ namespace Lean
 			return default(Vector3);
 		}
 		
-		// This will return the change in world position of this finger based on the distance from the camera
-		public Vector3 GetDeltaWorldPosition(float distance, Camera camera = null)
+		// This will return the world position of this finger based on the distance from the camera
+		public Vector3 GetWorldPosition(float distance, Camera camera = null)
 		{
-			return GetDeltaWorldPosition(distance, distance, camera);
-		}
-		
-		public Vector3 GetDeltaWorldPosition(float lastDistance, float distance, Camera camera = null)
-		{
-			if (camera == null) camera = Camera.main;
-			
-			if (camera != null)
+			if (LeanTouch.GetCamera(ref camera) == true)
 			{
-				return GetWorldPosition(distance, camera) - GetLastWorldPosition(lastDistance, camera);
+				var point = new Vector3(ScreenPosition.x, ScreenPosition.y, distance);
+				
+				return camera.ScreenToWorldPoint(point);
 			}
 			
 			return default(Vector3);
 		}
 		
-		public void Show(Texture texture)
+		// This will return the change in world position of this finger based on the distance from the camera
+		public Vector3 GetWorldDelta(float distance, Camera camera = null)
 		{
-			if (texture != null && Set == true)
+			return GetWorldDelta(distance, distance, camera);
+		}
+		
+		public Vector3 GetWorldDelta(float lastDistance, float distance, Camera camera = null)
+		{
+			if (LeanTouch.GetCamera(ref camera) == true)
 			{
-				var rect = new Rect(0, 0, texture.width, texture.height);
-				
-				rect.center = new Vector2(ScreenPosition.x, Screen.height - ScreenPosition.y);
-				
-				GUI.DrawTexture(rect, texture);
+				return GetWorldPosition(distance, camera) - GetLastWorldPosition(lastDistance, camera);
 			}
+			
+			return default(Vector3);
 		}
 		
 		// Clear snapshots and pool them, count = -1 for all

@@ -4,35 +4,35 @@ public class Table : MonoBehaviour
 {
     public LayerMask LayerMask = UnityEngine.Physics.DefaultRaycastLayers;
 
-    protected virtual void OnEnable ()
+    protected virtual void OnEnable()
     {
-        Lean.LeanTouch.OnFingerSwipe += OnFingerSwipe;
-        Lean.LeanTouch.OnFingerHeldDown += OnFingerHeldDown;
+        Lean.Touch.LeanTouch.OnFingerSwipe += OnFingerSwipe;
+        //Lean.Touch.LeanTouch.OnFingerHeldDown += OnFingerHeldDown;
     }
 
-    protected virtual void OnDisable ()
+    protected virtual void OnDisable()
     {
-        Lean.LeanTouch.OnFingerSwipe -= OnFingerSwipe;
-        Lean.LeanTouch.OnFingerHeldDown -= OnFingerHeldDown;
+        Lean.Touch.LeanTouch.OnFingerSwipe -= OnFingerSwipe;
+        //Lean.Touch.LeanTouch.OnFingerHeldDown -= OnFingerHeldDown;
     }
 
-    public void OnFingerHeldDown (Lean.LeanFinger finger)
+    public void OnFingerHeldDown(Lean.Touch.LeanFinger finger)
     {
-        DiceManager.I.Reset ();
+        DiceManager.I.Reset();
     }
 
-    public void OnFingerSwipe (Lean.LeanFinger finger)
+    public void OnFingerSwipe(Lean.Touch.LeanFinger finger)
     {
         // Raycast information
-        var ray = finger.GetStartRay ();
+        var ray = finger.GetStartRay();
         var hit = default(RaycastHit);
 
         // Was this finger pressed down on a collider?
-        if (Physics.Raycast (ray, out hit, float.PositiveInfinity, LayerMask) == true) {
+        if (Physics.Raycast(ray, out hit, float.PositiveInfinity, LayerMask) == true) {
             // Was that collider this one?
             if (hit.collider.gameObject == gameObject) {
-                DiceManager.I.OnSwipe (finger);
-               
+                DiceManager.I.OnSwipe(finger);
+
             }
         }
     }
